@@ -43,7 +43,7 @@ contract KhaiCoin is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit, 
     function nonces(address owner)
         public
         view
-        override(ERC20Permit, nguyenkhaihuyen1990)
+        override(ERC20Permit, Nonces)
         returns (uint256)
     {
         return super.nonces(owner);
