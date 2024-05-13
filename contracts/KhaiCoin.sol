@@ -1,22 +1,39 @@
 // SPDX-License-Identifier: MIT
-// Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-/// @custom:security-contact nguyenkhaihuyen1990@gmail.com
-contract KhaiCoin is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit, ERC20Votes {
-    constructor(address initialOwner)
-        ERC20("KhaiCoin", "KHA")
-        Ownable(initialOwner)
-        ERC20Permit("KhaiCoin")
-    {
+/// @custom:security-contact rik@superhi.com
+contract KhaiCoin is ERC20, ERC20Burnable, Pausable, Ownable, ERC20Permit, ERC20Votes {
+    
+    uint public postThreshold;
+    uint public commentThreshold;
+    
+    constructor() ERC20("KhaiCoin", "KhaiCoin") ERC20Permit("KhaiCoin") {
         _mint(msg.sender, 1000000 * 10 ** decimals());
+        postThreshold = 100 * 10 ** decimals();
+        commentThreshold = 25 * 10 ** decimals();
+    }
+
+    function changePostThreshold (uint newThreshold) public onlyOwner {
+      postThreshold = newThreshold * 10 ** decimals();
+    }
+
+    function changeCommentThreshold (uint newThreshold) public onlyOwner {
+      commentThreshold = newThreshold * 10 ** decimals();
+    }
+
+    function canPost (address from) public view returns (bool) {
+      return balanceOf(from) >= postThreshold;
+    }
+
+    function canComment (address from) public view returns (bool) {
+      return balanceOf(from) >= commentThreshold;
     }
 
     function pause() public onlyOwner {
@@ -31,21 +48,35 @@ contract KhaiCoin is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit, 
         _mint(to, amount);
     }
 
+    function _beforeTokenTransfer(address from, address to, uint256 amount)
+        internal
+        whenNotPaused
+        override
+    {
+        super._beforeTokenTransfer(from, to, amount);
+    }
+
     // The following functions are overrides required by Solidity.
 
-    function _update(address from, address to, uint256 value)
+    function _afterTokenTransfer(address from, address to, uint256 amount)
         internal
-        override(ERC20, ERC20Pausable, ERC20Votes)
+        override(ERC20, ERC20Votes)
     {
-        super._update(from, to, value);
+        super._afterTokenTransfer(from, to, amount);
     }
 
-    function nonces(address owner)
-        public
-        view
-        override(ERC20Permit, Nonces)
-        returns (uint256)
+    function _mint(address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
     {
-        return super.nonces(owner);
+        super._mint(to, amount);
+    }
+
+    function _burn(address account, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._burn(account, amount);
     }
 }
+
